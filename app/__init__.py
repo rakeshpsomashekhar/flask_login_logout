@@ -9,7 +9,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 
 from app.config import Config
-from app.routes import auth_bp, file_ops_bp, genai_bp, speech_bp,profile_bp
+from app.routes import auth_bp, file_ops_bp, genai_bp, speech_bp,profile_bp,logout_bp,search_bp
 
 def create_app():
     app = Flask(__name__)
@@ -24,7 +24,8 @@ def create_app():
     app.register_blueprint(genai_bp, url_prefix='/genai')
     app.register_blueprint(speech_bp, url_prefix='/speech')
     app.register_blueprint(profile_bp, url_prefix='/profile')
-    
+    app.register_blueprint(logout_bp, url_prefix='/logout') 
+    app.register_blueprint(search_bp, url_prefix='/search') 
     @app.route('/', methods=['get'])
     def welcome():
         return jsonify({'custom_token': "welcome to flask app"})

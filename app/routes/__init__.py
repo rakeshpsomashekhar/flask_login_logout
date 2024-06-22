@@ -5,5 +5,7 @@ file_ops_bp = Blueprint('file_ops', __name__)
 genai_bp = Blueprint('genai', __name__)
 speech_bp = Blueprint('speech', __name__)
 profile_bp = Blueprint('profile', __name__)
+logout_bp = Blueprint('logout', __name__)
+search_bp = Blueprint('search', __name__)
 
-from . import auth, file_operations, genai, speech,profile
+from . import auth, file_operations, genai, speech,profile,logout,search

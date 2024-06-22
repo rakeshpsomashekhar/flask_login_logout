@@ -1,11 +1,18 @@
 import datetime as dt
-from flask import request, jsonify
-
+from flask import request, jsonify, current_app
 from app import db
 from app.models import User, UserLoginHistory, UserProfile
 from app.services.jwt_service import verify_google_jwt, generate_custom_token, verify_custom_token
 from app.routes import auth_bp
-from flask import current_app
+
+# Configure logging
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@auth_bp.before_request
+def before_request():
+    logger.info(f"Request: {request.method}")
 
 @auth_bp.route('/verify-oauth-token', methods=['POST'])
 def verify_google_token():
@@ -14,6 +21,7 @@ def verify_google_token():
     email = data.get('email')
 
     if not google_jwt or not email:
+        logger.warning("Missing parameters in request to /verify-oauth-token")
         return jsonify({'error': 'Missing parameters'}), 401
 
     validated_data = verify_google_jwt(google_jwt, email)
@@ -22,7 +30,8 @@ def verify_google_token():
         token, expiration_time = generate_custom_token(email)
         user = User.query.filter_by(email=email).first()
         
-        if not user:    
+        if not user:
+            logger.info(f"Creating new user for email: {email}")
             user = User(
                 email=email,
                 first_name=validated_data.get('given_name'),
@@ -32,7 +41,8 @@ def verify_google_token():
                 user_type='holcim'
             )
             db.session.add(user)
-            db.session.flush()
+            logger.info(f"Created new user for email: {email}")
+            db.session.flush()  # Ensure user.id is available
             user_profile = UserProfile(
                 user_id=user.id,
                 language=current_app.config['LANGUAGE'], 
@@ -42,13 +52,15 @@ def verify_google_token():
                 is_holcim_data=current_app.config['IS_HOLCIM_DATA'],
                 is_my_library=current_app.config['IS_MY_LIBRARY'],
                 is_custom_copilot=current_app.config['IS_CUSTOM_COPILOT'],
-                converse_style= current_app.config['CONVERSE_STYLE'],
-                custom_instruction= current_app.config['CUSTOM_INSTRUCTION'],
-                created_datetime=current_app.config['CREATED_DATETIME'],
+                converse_style=current_app.config['CONVERSE_STYLE'],
+                custom_instruction=current_app.config['CUSTOM_INSTRUCTION'],
+                created_datetime=dt.datetime.utcnow(),  # Use current time for created_datetime
                 created_by=current_app.config['CREATED_BY']
             )
             db.session.add(user_profile)
+            logger.info(f"Created user profile for email: {email}")
         else:
+            logger.info(f"User exists for email: {email}, logging login history")
             login_history = UserLoginHistory(
                 user_id=user.id,
                 login_datetime=dt.datetime.utcnow(),
@@ -57,22 +69,28 @@ def verify_google_token():
                 user_agent=request.headers.get('User-Agent')
             )
             db.session.add(login_history)
+        
         db.session.commit()
-
+        logger.info(f"Token generated ")
         return jsonify({'custom_token': token})
     else:
+        logger.warning("Invalid Google JWT token or email")
         return jsonify({'error': 'Invalid Google JWT token or email'}), 401
 
 @auth_bp.route('/verify-token', methods=['POST'])
 def verify_own_token():
     data = request.get_json()
     custom_token = data.get('custom_token')
+
     if not custom_token:
+        logger.warning("Missing custom token in request to /verify-token")
         return jsonify({'error': 'Missing custom token'}), 400
 
     result = verify_custom_token(custom_token)
+    
     if 'error' in result:
+        logger.warning(f"Token verification failed: {result['error']}")
         return jsonify(result), 401
+
+    logger.info(f"Token verified successfully for email: {result['email']}")
     return jsonify({'email': result['email'], 'message': 'Token is valid'})
-
-

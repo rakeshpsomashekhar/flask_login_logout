@@ -1,25 +1,36 @@
 import datetime as dt
+import logging
 from flask import request, jsonify
-
 from app import db
 from app.models import User
 from app.routes import profile_bp
 from app.services.jwt_service import verify_custom_token
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@profile_bp.before_request
+def before_request():
+    logger.info(f"Request: {request.method} ")
+
 @profile_bp.route('/get_profile', methods=['GET'])
 def get_profile():
     custom_token = request.headers.get('token')
     if not custom_token:
+        logger.warning("Missing custom token in request to /get_profile")
         return jsonify({'error': 'Missing custom token'}), 401
 
     token_validation_response = verify_custom_token(custom_token)
     if 'error' in token_validation_response:
+        logger.warning(f"Token validation failed: {token_validation_response['error']}")
         return jsonify(token_validation_response), 401
 
     email = token_validation_response['email']
     user = User.query.filter_by(email=email).first()
 
     if not user or not user.user_profile:
+        logger.warning(f"Profile not found for email: {email}")
         return jsonify({'error': 'Profile not found'}), 404
 
     profile = user.user_profile
@@ -35,22 +46,30 @@ def get_profile():
         'context': profile.custom_instruction,
     }
 
+    logger.info(f"Profile retrieved for email: {email}")
     return jsonify(profile_data)
 
+@profile_bp.before_request
+def before_request():
+    logger.info(f"Request: {request.method} ")
+    
 @profile_bp.route('/update_profile', methods=['POST'])
 def update_profile():
     custom_token = request.headers.get('token')
     if not custom_token:
+        logger.warning("Missing custom token in request to /update_profile")
         return jsonify({'error': 'Missing custom token'}), 401
 
     token_validation_response = verify_custom_token(custom_token)
     if 'error' in token_validation_response:
+        logger.warning(f"Token validation failed: {token_validation_response['error']}")
         return jsonify(token_validation_response), 401
 
     email = token_validation_response['email']
     user = User.query.filter_by(email=email).first()
 
     if not user or not user.user_profile:
+        logger.warning(f"Profile not found for email: {email}")
         return jsonify({'error': 'Profile not found'}), 404
 
     profile = user.user_profile
@@ -88,4 +107,5 @@ def update_profile():
 
     db.session.commit()
 
+    logger.info(f"Profile updated for email: {email}")
     return jsonify({'message': 'Profile updated successfully'})

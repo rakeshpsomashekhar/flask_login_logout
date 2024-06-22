@@ -5,8 +5,8 @@ import datetime as dt
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'rakesh')
-    # SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///' + os.path.join(basedir, 'app.db'))
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://postgres:TfE(^P>G3#cq"jix@34.29.14.109:5432/copilotdev')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///' + os.path.join(basedir, 'app.db'))
+    # SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://postgres:TfE(^P>G3#cq"jix@34.29.14.109:5432/copilotdev')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     TOKEN_EXPIRATION_MINUTES = 1400
     HISTORY_TOKEN_EXPIRATION_MINUTES = 120
