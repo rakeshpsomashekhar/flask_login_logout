@@ -10,6 +10,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     TOKEN_EXPIRATION_MINUTES = 1400
     HISTORY_TOKEN_EXPIRATION_MINUTES = 120
+    REDIS_URL = os.getenv('REDIS_URL', "redis://localhost:6379/0")
     # PROJECT_ID = 'e3fsf34fdf'
     # BUCKET_NAME = 'dvfeeec'
     SQLALCHEMY_TRACK_MODIFICATIONS = False

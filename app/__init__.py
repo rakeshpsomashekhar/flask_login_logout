@@ -26,7 +26,4 @@ def create_app():
     app.register_blueprint(profile_bp, url_prefix='/profile')
     app.register_blueprint(logout_bp, url_prefix='/logout') 
     app.register_blueprint(search_bp, url_prefix='/search') 
-    @app.route('/', methods=['get'])
-    def welcome():
-        return jsonify({'custom_token': "welcome to flask app"})
     return app

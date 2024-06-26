@@ -1,14 +1,17 @@
 import datetime as dt
+from redis import Redis
 from flask import request, jsonify, current_app
+
 from app import db
+from app.routes import auth_bp
 from app.models import User, UserLoginHistory, UserProfile
 from app.services.jwt_service import verify_google_jwt, generate_custom_token, verify_custom_token
-from app.routes import auth_bp
 
 # Configure logging
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 @auth_bp.before_request
 def before_request():
@@ -16,6 +19,7 @@ def before_request():
 
 @auth_bp.route('/verify-oauth-token', methods=['POST'])
 def verify_google_token():
+    redis_client = Redis.from_url(current_app.config['REDIS_URL'])
     data = request.get_json()
     google_jwt = data.get('google_jwt')
     email = data.get('email')
@@ -28,6 +32,8 @@ def verify_google_token():
     
     if validated_data:
         token, expiration_time = generate_custom_token(email)
+        redis_client.set(token, email, expiration_time)
+        redis_client.close()
         user = User.query.filter_by(email=email).first()
         
         if not user:
@@ -79,6 +85,7 @@ def verify_google_token():
 
 @auth_bp.route('/verify-token', methods=['POST'])
 def verify_own_token():
+    redis_client = Redis.from_url(current_app.config['REDIS_URL'])
     data = request.get_json()
     custom_token = data.get('custom_token')
 
@@ -86,11 +93,21 @@ def verify_own_token():
         logger.warning("Missing custom token in request to /verify-token")
         return jsonify({'error': 'Missing custom token'}), 400
 
-    result = verify_custom_token(custom_token)
+    # result = verify_custom_token(custom_token)
+    result = redis_client.get(custom_token)
     
-    if 'error' in result:
+    if not result:
         logger.warning(f"Token verification failed: {result['error']}")
         return jsonify(result), 401
 
-    logger.info(f"Token verified successfully for email: {result['email']}")
-    return jsonify({'email': result['email'], 'message': 'Token is valid'})
+    logger.info(f"Token verified successfully for email: {result}")
+    return jsonify({'email': result, 'message': 'Token is valid'})
+
+@auth_bp.route('/logout', methods=['POST'])
+def logout():
+    redis_client = Redis.from_url(current_app.config['REDIS_URL'])
+    custom_token = request.headers.get('token')
+    data = request.get_json()
+    email = data.get('email')
+    redis_client.delete(custom_token)
+    return jsonify({'message': "Logout successfull"}), 200

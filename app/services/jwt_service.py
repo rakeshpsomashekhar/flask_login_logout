@@ -14,7 +14,7 @@ def verify_google_jwt(google_jwt, email):
     except Exception as e:
         return None
 def generate_custom_token(email):
-    expiration_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=current_app.config['TOKEN_EXPIRATION_MINUTES'])
+    expiration_time = int(current_app.config['TOKEN_EXPIRATION_MINUTES']) * 60 # in seconds
     token = jwt.encode({'email': email, 'exp': expiration_time}, current_app.config['SECRET_KEY'], algorithm='HS256')
     
     return token, expiration_time
