@@ -4,7 +4,7 @@ from flask import request, jsonify, current_app
 
 from app import db
 from app.routes import auth_bp
-from app.models import User, UserLoginHistory, UserProfile
+from app.models import User, UserLoginHistory,UserLogoutHistory,UserProfile
 from app.services.jwt_service import verify_google_jwt, generate_custom_token, verify_custom_token
 
 # Configure logging
@@ -83,6 +83,8 @@ def verify_google_token():
         logger.warning("Invalid Google JWT token or email")
         return jsonify({'error': 'Invalid Google JWT token or email'}), 401
 
+from flask import jsonify
+
 @auth_bp.route('/verify-token', methods=['POST'])
 def verify_own_token():
     redis_client = Redis.from_url(current_app.config['REDIS_URL'])
@@ -93,21 +95,39 @@ def verify_own_token():
         logger.warning("Missing custom token in request to /verify-token")
         return jsonify({'error': 'Missing custom token'}), 400
 
-    # result = verify_custom_token(custom_token)
+    # Retrieve the token value from Redis
     result = redis_client.get(custom_token)
     
     if not result:
-        logger.warning(f"Token verification failed: {result['error']}")
-        return jsonify(result), 401
+        logger.warning("Token verification failed: Token not found in Redis")
+        return jsonify({'error': 'Token not found'}), 401
 
-    logger.info(f"Token verified successfully for email: {result}")
-    return jsonify({'email': result, 'message': 'Token is valid'})
+    # Convert bytes to string
+    token_value = result.decode('utf-8')
+
+    logger.info(f"Token verified successfully for email: {token_value}")
+    return jsonify({'email': token_value, 'message': 'Token is valid'})
+
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
     redis_client = Redis.from_url(current_app.config['REDIS_URL'])
     custom_token = request.headers.get('token')
     data = request.get_json()
-    email = data.get('email')
     redis_client.delete(custom_token)
+    email = data.get('email')
+    user = User.query.filter_by(email=email).first()
+    logger.info("Logout successfull")
+    logout_history = UserLogoutHistory(
+                user_id=user.id,
+                logout_datetime=dt.datetime.utcnow(),
+                logout_success=True,
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+    db.session.add(logout_history)    
+    db.session.commit()
     return jsonify({'message': "Logout successfull"}), 200
+
+
+    

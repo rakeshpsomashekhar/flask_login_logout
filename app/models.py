@@ -38,7 +38,6 @@ class UserLogoutHistory(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     logout_datetime = db.Column(db.DateTime, default=datetime.utcnow)
     logout_success = db.Column(db.Boolean, default=True)
-    error_message = db.Column(db.String(255))
     ip_address = db.Column(db.String(45))  # IPv6 length
     user_agent = db.Column(db.String(255))
 

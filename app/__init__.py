@@ -25,5 +25,10 @@ def create_app():
     app.register_blueprint(speech_bp, url_prefix='/speech')
     app.register_blueprint(profile_bp, url_prefix='/profile')
     app.register_blueprint(logout_bp, url_prefix='/logout') 
-    app.register_blueprint(search_bp, url_prefix='/search') 
+    app.register_blueprint(search_bp, url_prefix='/search')
+
+    
+    @app.route('/', methods=['GET'])
+    def get_result():
+        return jsonify({'default':'welcome to flask application'})
     return app

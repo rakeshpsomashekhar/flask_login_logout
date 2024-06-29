@@ -9,3 +9,4 @@ PyJWT
 Gunicorn
 Flask-Migrate
 psycopg2-binary
+redis

@@ -33,8 +33,8 @@ def logout():
         logger.info("Logout successfull")
         logout_history = UserLoginHistory(
                 user_id=user.id,
-                login_datetime=dt.datetime.utcnow(),
-                login_success=True,
+                logout_datetime=dt.datetime.utcnow(),
+                logout_success=True,
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
